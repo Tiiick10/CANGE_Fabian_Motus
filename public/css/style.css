@@ -1,0 +1,38 @@
+body {
+
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 20px;
+
+}
+
+  #word-display span {
+
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    margin: 5px;
+    border: 1px solid #000;
+    text-align: center;
+}
+
+  .correct {
+
+    background-color: green;
+    color: white;
+
+}
+
+  .present {
+
+    background-color: yellow;
+    color: black;
+
+}
+
+  #proposals {
+    
+    margin-top: 20px;
+
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motus</title>
+  <link rel="stylesheet" href="./public/css/style.css">
+
+</head>
+
+<body>
+
+  <h1>Motus</h1>
+
+  <div id="settings">
+
+    <label for="word-length">Choisissez la taille du mot :</label>
+
+    <select id="word-length">
+
+      <option value="5">5 lettres</option>
+      <option value="6">6 lettres</option>
+      <option value="7">7 lettres</option>
+      
+    </select>
+
+    <label for="attempts">Nombre de tentatives :</label>
+
+    <input type="number" id="attempts" value="6" min="1">
+
+    <button id="start-game">Commencer</button>
+
+  </div>
+
+  <div id="game" style="display: none;">
+
+    <div id="word-display"></div>
+
+    <p>Nombre de tentatives restantes : <span id="remaining-attempts"></span></p>
+
+    <input type="text" id="guess" placeholder="Entrez un mot">
+
+    <button id="submit-guess">Valider</button>
+
+    <div id="proposals"></div>
+
+    <p id="message"></p>
+
+  </div>
+
+  <script src="./public/js/main.js"></script>
+
+</body>
+
+</html>
+
