@@ -1,22 +1,19 @@
-// Liste de mots prédéfinis pour chaque longueur
-
-let wordsByLength = {
-
-  5: ["frite", "arbre", "chien", "bleue", "calin"],
-  6: ["agiter", "pierre", "voyage", "aurore"],
-  7: ["admirer", "parfume", "bonheur", "abdomen"],
-
-}
-
+// ----------------------------
 // Variables globales
+// ----------------------------
 
 let chosenWord = "" 
-let attemptsLeft = 0  
+let attemptsLeft = 0 
 let currentWordDisplay = [] 
-let proposals = []  // Historique
-let playerScore = 0  // Score
+let proposals = []  // Historique des propositions
+let playerScore = 0  // Score du joueur
+let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [] 
+let wordsByLength = {}  // Dictionnaire des mots par longueur
+let isDictionaryLoaded = false  // Indicateur de chargement du dictionnaire
 
+// ----------------------------
 // Éléments DOM
+// ----------------------------
 
 let settingsDiv = document.getElementById("settings") 
 let gameDiv = document.getElementById("game") 
@@ -27,147 +24,245 @@ let proposalsDiv = document.getElementById("proposals")
 let message = document.getElementById("message") 
 let startButton = document.getElementById("start-game") 
 let submitGuessButton = document.getElementById("submit-guess") 
+let leaderboardBody = document.getElementById("leaderboard-body")
 
+let currentPlayerName = localStorage.getItem("currentPlayerName") || ""
+
+
+// ----------------------------
+// Chargement du dictionnaire JSON
+// ----------------------------
+
+fetch("public/assets/dictionnaire.json")
+  .then(response => response.json())
+  .then(data => {
+    wordsByLength = data
+    console.log("Dictionnaire chargé :", wordsByLength) 
+    isDictionaryLoaded = true  // Dictionnaire chargé, prêt à démarrer
+  })
+  .catch(error => {
+    console.error("Erreur lors du chargement du dictionnaire :", error)
+    isDictionaryLoaded = false  // En cas d'erreur, on empêche de démarrer
+  })
+
+
+// ----------------------------
 // Fonction pour démarrer une nouvelle partie
+// ----------------------------
 
 startButton.addEventListener("click", () => {
 
-  // Obtenir les paramètres choisis par le joueur
+  // Vérification du dictionnaire chargé
+  if (!isDictionaryLoaded) {
+    alert("Le dictionnaire n'est pas encore chargé. Veuillez patienter.")
+    return
+  }
 
+  // Vérification du nom du joueur
+  if (!currentPlayerName) {
+    currentPlayerName = askForPlayerName()
+    localStorage.setItem("currentPlayerName", currentPlayerName)
+  }
+
+  // Récupération de la longueur du mot et des tentatives
   let wordLength = parseInt(document.getElementById("word-length").value) 
   attemptsLeft = parseInt(document.getElementById("attempts").value) 
 
-  // Valider la longueur de mot
-
+  // Vérification de la longueur du mot
   if (!wordsByLength[wordLength]) {
-      alert("Longueur de mot invalide. Veuillez choisir une longueur disponible.") 
-      return 
+    alert("Longueur de mot invalide. Veuillez choisir une longueur disponible.") 
+    return 
   }
-
-  // Choisir un mot aléatoire
 
   let words = wordsByLength[wordLength] 
   chosenWord = words[Math.floor(Math.random() * words.length)] 
 
-  // Initialiser l'affichage du mot
+  currentWordDisplay = Array(wordLength).fill("") 
+  wordDisplay.innerHTML = ""  
 
-  currentWordDisplay = Array(chosenWord.length).fill("[ ]") 
-  wordDisplay.innerHTML = currentWordDisplay
-      .map((char) => `<span>${char}</span>`)
-      .join("") 
+  // Création des cases pour afficher les lettres
+  for (let i = 0; i < wordLength; i++) {
+    let span = document.createElement("span") 
+    span.classList.add("letter") 
+    span.textContent = "" 
+    wordDisplay.appendChild(span) 
+  }
 
-  // Réinitialiser les variables et l'affichage
-
+  // Initialisation des tentatives et des propositions
   remainingAttempts.textContent = attemptsLeft 
   proposals = [] 
   proposalsDiv.innerHTML = "" 
   message.textContent = "" 
 
-  // Passer à la section du jeu
-
+  // Affichage des sections de jeu
   settingsDiv.style.display = "none" 
   gameDiv.style.display = "block" 
-}) 
+})
 
-// Fonction pour valider une proposition
+
+// ----------------------------
+// Fonction pour valider la proposition du joueur
+// ----------------------------
 
 function validateGuess() {
 
-  let userGuess = guessInput.value.toLowerCase()  // Mot utilisateur
+  let userGuess = guessInput.value.toLowerCase()  
   guessInput.value = "" 
 
-  // Vérifier la validité de la proposition
-
+  // Vérification de la longueur du mot
   if (userGuess.length !== chosenWord.length) {
-      message.textContent = "Le mot proposé doit avoir la même longueur." 
-      return 
+    message.textContent = `Le mot proposé doit avoir ${chosenWord.length} lettres.` 
+    message.style.color = "red" 
+    return 
   }
 
-  // Initialiser des variables
+  // Vérification de la validité du mot
+  if (!wordsByLength[chosenWord.length].includes(userGuess)) {
+    message.textContent = "Ce mot n'est pas valide." 
+    message.style.color = "red" 
+    return 
+  }
 
-  let displayUpdate = [...currentWordDisplay]  // Mise à jour de l'affichage
-  let usedIndices = new Set()  // Indices des lettres bien placées
-  let remainingChosenWord = [...chosenWord]  // Lettres restantes du mot cible
+  // Mise à jour de l'affichage des lettres
+  let displayUpdate = Array(chosenWord.length).fill("absent")  
+  let usedIndices = new Set()  
+  let remainingChosenWord = [...chosenWord]  
 
-  // Vérifier les lettres bien placées
-
+  // Comparaison lettre par lettre
   for (let i = 0; i < chosenWord.length; i++) {
-      if (userGuess[i] === chosenWord[i]) {
-          displayUpdate[i] = `[${userGuess[i].toUpperCase()}]` 
-          usedIndices.add(i) 
-          remainingChosenWord[i] = null  // Marquer comme utilisée
-      }
+    if (userGuess[i] === chosenWord[i]) {
+      displayUpdate[i] = "correct" 
+      usedIndices.add(i) 
+      remainingChosenWord[i] = null  
+    }
   }
 
-  // Vérifier les lettres présentes mais mal placées
-
+  // Recherche des lettres présentes
   for (let i = 0; i < chosenWord.length; i++) {
-      if (!usedIndices.has(i) && remainingChosenWord.includes(userGuess[i])) {
-          displayUpdate[i] = `<span class="present">${userGuess[i].toUpperCase()}</span>` 
-          remainingChosenWord[remainingChosenWord.indexOf(userGuess[i])] = null  // Marquer comme utilisée
-      } else if (!usedIndices.has(i)) {
-          displayUpdate[i] = "[ ]"  // Lettre absente
+    if (!usedIndices.has(i)) {
+      let letterIndex = remainingChosenWord.indexOf(userGuess[i]) 
+      if (letterIndex !== -1) {
+        displayUpdate[i] = "present" 
+        remainingChosenWord[letterIndex] = null  
       }
+    }
   }
 
-  // Mettre à jour l'affichage du mot
+  // Mise à jour de l'affichage
+  let spans = wordDisplay.querySelectorAll(".letter") 
+  for (let i = 0; i < chosenWord.length; i++) {
+    spans[i].textContent = userGuess[i].toUpperCase() 
+    spans[i].classList.remove("correct", "present", "absent") 
 
-  currentWordDisplay = displayUpdate 
-  wordDisplay.innerHTML = currentWordDisplay
-      .map((char) =>
-          char.startsWith("[")
-              ? `<span class="correct">${char}</span>`
-              : `<span>${char}</span>`
-      )
-      .join("") 
+    if (displayUpdate[i] === "correct") {
+      spans[i].classList.add("correct") 
+    } else if (displayUpdate[i] === "present") {
+      spans[i].classList.add("present") 
+    } else {
+      spans[i].classList.add("absent") 
+    }
+  }
 
-  // Ajouter la proposition à l'historique
-
+  // Ajout de la proposition à l'historique
   proposals.push(userGuess) 
-  proposalsDiv.innerHTML = proposals.map((word) => `<p>${word}</p>`).join("") 
+  proposalsDiv.innerHTML += `<p>${userGuess.toUpperCase()}</p>` 
 
-  // Vérifier la fin de la partie
-
+  // Vérification de la victoire
   if (userGuess === chosenWord) {
-      message.textContent = "Félicitations ! Vous avez trouvé le mot !" 
-      playerScore++ 
-      askForReplay() 
-
+    message.textContent = "Félicitations ! Vous avez trouvé le mot !" 
+    message.style.color = "green" 
+    playerScore++ 
+    askForReplay() 
   } else {
+    attemptsLeft-- 
+    remainingAttempts.textContent = attemptsLeft 
 
-      attemptsLeft-- 
-      remainingAttempts.textContent = attemptsLeft 
-
-      if (attemptsLeft === 0) {
-          message.textContent = `Dommage ! Le mot était "${chosenWord}".` 
-          askForReplay() 
-      }
+    // Vérification de la fin de la partie
+    if (attemptsLeft === 0) {
+      message.textContent = `Dommage ! Le mot était "${chosenWord.toUpperCase()}".` 
+      message.style.color = "red" 
+      askForReplay() 
+    } else {
+      message.textContent = "Continuez à essayer !" 
+      message.style.color = "black" 
+    }
   }
 }
 
-// Associer le bouton "Valider" à la fonction validateGuess
-
+// Événements pour la soumission de la proposition
 submitGuessButton.addEventListener("click", validateGuess) 
-
-// Validation avec Enter
-
 guessInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-      validateGuess() 
+    validateGuess() 
   }
-}) 
+})
 
-// Rejouer
+// ----------------------------
+// Fonction pour demander un replay
+// ----------------------------
 
 function askForReplay() {
   setTimeout(() => {
-      if (confirm("Voulez-vous rejouer ?")) {
-          settingsDiv.style.display = "block" 
-          gameDiv.style.display = "none" 
-      } else {
-          alert(`Merci d'avoir joué ! Votre score final est : ${playerScore}`) 
-          settingsDiv.style.display = "block" 
-          gameDiv.style.display = "none" 
-      }
+    updateLeaderboard(currentPlayerName, playerScore)
+
+    if (confirm("Voulez-vous rejouer ?")) {
+      settingsDiv.style.display = "block" 
+      gameDiv.style.display = "none" 
+    } else {
+      alert(`Merci d'avoir joué ! Votre score final est : ${playerScore}`) 
+      playerScore = 0 
+      settingsDiv.style.display = "block" 
+      gameDiv.style.display = "none" 
+    }
   }, 1000) 
 }
+
+// ----------------------------
+// Fonction pour demander le nom du joueur
+// ----------------------------
+
+function askForPlayerName() {
+  let playerName = prompt("Veuillez entrer votre nom :")
+  while (!playerName || playerName.trim() === "") {
+    playerName = prompt("Le nom ne peut pas être vide. Veuillez entrer votre nom :")
+  }
+  return playerName.trim()
+}
+
+// ----------------------------
+// Fonction pour mettre à jour le leaderboard
+// ----------------------------
+
+function updateLeaderboard(playerName, score) {
+  let existingPlayer = leaderboard.find(player => player.name === playerName)
+
+  if (existingPlayer) {
+    if (score > existingPlayer.score) {
+      existingPlayer.score = score
+    }
+  } else {
+    leaderboard.push({ name: playerName, score })
+  }
+
+  leaderboard.sort((a, b) => b.score - a.score)
+  localStorage.setItem('leaderboard', JSON.stringify(leaderboard))
+
+  renderLeaderboard()
+}
+
+// ----------------------------
+// Fonction pour afficher le leaderboard
+// ----------------------------
+
+function renderLeaderboard() {
+  leaderboardBody.innerHTML = leaderboard
+    .map(player => 
+      `<tr>
+        <td>${player.name}</td>
+        <td>${player.score}</td>
+      </tr>`
+    )
+    .join('')
+}
+
+renderLeaderboard()

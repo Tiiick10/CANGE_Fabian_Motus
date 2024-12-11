@@ -6,49 +6,76 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motus</title>
+  <title>Jeu Motus</title>
   <link rel="stylesheet" href="./public/css/style.css">
 
 </head>
 
 <body>
 
-  <h1>Motus</h1>
-
   <div id="settings">
 
-    <label for="word-length">Choisissez la taille du mot :</label>
+    <h2>Bienvenue dans le jeu Motus</h2>
+
+    <label for="word-length">Longueur du mot :</label>
 
     <select id="word-length">
 
       <option value="5">5 lettres</option>
       <option value="6">6 lettres</option>
       <option value="7">7 lettres</option>
-      
+
     </select>
 
-    <label for="attempts">Nombre de tentatives :</label>
+    <br><br>
 
-    <input type="number" id="attempts" value="6" min="1">
+    <label for="attempts">Nombre d'essais :</label>
+    <input type="number" id="attempts" min="1" max="10" value="6">
 
-    <button id="start-game">Commencer</button>
+    <br><br>
+
+    <button id="start-game">Démarrer la Partie</button>
 
   </div>
 
-  <div id="game" style="display: none;">
+  <div id="game">
 
+    <h2>Motus</h2>
     <div id="word-display"></div>
-
-    <p>Nombre de tentatives restantes : <span id="remaining-attempts"></span></p>
-
-    <input type="text" id="guess" placeholder="Entrez un mot">
-
+    <input id="guess" type="text" maxlength="7" placeholder="Proposez un mot...">
+    <br><br>
     <button id="submit-guess">Valider</button>
-
+    <p id="message"></p>
+    <p>Essais restants : <span id="remaining-attempts"></span></p>
+    <h3>Historique des Propositions :</h3>
     <div id="proposals"></div>
 
-    <p id="message"></p>
+  </div>
 
+  <div id="leaderboard">
+
+    <h3>Tableau des Scores</h3>
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>Nom du Joueur</th>
+
+          <th>Score</th>
+
+        </tr>
+
+      </thead>
+
+      <tbody id="leaderboard-body">
+
+      </tbody>
+
+    </table>
+    
   </div>
 
   <script src="./public/js/main.js"></script>
@@ -56,4 +83,3 @@
 </body>
 
 </html>
-
